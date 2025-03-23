@@ -52,8 +52,76 @@ def rank_resumes(job_description, resumes):
     job_description_vector = vectors[0]
     resume_vectors = vectors[1:]
     cosine_similarities = cosine_similarity(job_description_vector, resume_vectors).flatten()
-    return cosine_similarities, vectorizer.get_feature_names_out()
+    # Sort indices by similarity score in descending order to determine ranks
+    ranked_indices = cosine_similarities.argsort()[::-1]
+    ranked_scores = cosine_similarities[ranked_indices]
+    return ranked_scores, ranked_indices, vectorizer.get_feature_names_out()
 
+# Process and display results (replace the existing block)
+if uploaded_files and job_description:
+    with st.spinner("Analyzing resumes..."):
+        resumes = []
+        file_names = []
+        for file in uploaded_files:
+            text = extract_text_from_pdf(file)
+            if text:
+                resumes.append(text)
+                file_names.append(file.name)
+
+        if resumes:
+            scores, ranked_indices, feature_names = rank_resumes(job_description, resumes)
+            # Create DataFrame with ranks based on similarity to job description
+            results = pd.DataFrame({
+                "Rank": range(1, len(scores) + 1),  # Ranks start from 1
+                "Resume": [file_names[i] for i in ranked_indices],  # Reorder resumes by rank
+                "Similarity Score": scores  # Reordered scores
+            })
+            results = results[results["Similarity Score"] >= min_score]  # Filter by min_score
+
+            if show_skills and SPACY_AVAILABLE:
+                # Reorder skills to match ranked resumes
+                skills_list = [extract_skills(resumes[i]) for i in ranked_indices]
+                results["Key Skills"] = [", ".join(skills) for skills in skills_list[:len(results)]]
+
+            # Display top candidates
+            st.markdown('<p class="subheader">Ranked Candidates</p>', unsafe_allow_html=True)
+            top_results = results.head(top_n)
+            st.dataframe(top_results.style.format({"Similarity Score": "{:.2%}"}))
+
+            # Score distribution graph
+            st.markdown('<p class="subheader">Similarity Score Distribution</p>', unsafe_allow_html=True)
+            fig, ax = plt.subplots(figsize=(10, len(top_results) * 0.5))
+            sns.barplot(x="Similarity Score", y="Resume", data=top_results, palette="Blues_d", ax=ax)
+            ax.set_xlabel("Similarity Score (%)")
+            ax.set_xlim(0, 1)
+            for i, v in enumerate(top_results["Similarity Score"]):
+                ax.text(v + 0.01, i, f"{v:.2%}", va="center")
+            plt.tight_layout()
+            st.pyplot(fig)
+
+            # Detailed resume matches
+            with st.expander("View Detailed Resume Matches"):
+                for idx, row in top_results.iterrows():
+                    resume_text = resumes[ranked_indices[idx]]  # Use ranked index to get correct resume
+                    highlighted_text = highlight_keywords(resume_text[:500], job_description.split()[:10])
+                    st.markdown(f"**Rank {row['Rank']}: {row['Resume']} (Score: {row['Similarity Score']:.2%})**", unsafe_allow_html=True)
+                    st.markdown(f'<div>{highlighted_text}...</div>', unsafe_allow_html=True)
+
+            # Export results
+            st.markdown('<p class="subheader">Export Results</p>', unsafe_allow_html=True)
+            if export_format == "CSV":
+                st.markdown(get_csv_download_link(results), unsafe_allow_html=True)
+            elif export_format == "Excel":
+                buffer = BytesIO()
+                results.to_excel(buffer, index=False)
+                st.download_button("Download Excel", buffer.getvalue(), "resume_ranking.xlsx")
+            elif export_format == "JSON":
+                json_str = results.to_json(orient="records")
+                st.download_button("Download JSON", json_str, "resume_ranking.json")
+        else:
+            st.error("No valid text extracted from uploaded PDFs.")
+else:
+    st.warning("Please upload resumes and enter a job description.")
 # Function to highlight keywords in text
 def highlight_keywords(text, keywords):
     for keyword in keywords:

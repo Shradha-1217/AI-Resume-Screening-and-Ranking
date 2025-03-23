@@ -1,3 +1,6 @@
+# !pip install spacy
+# !python -m spacy download en_core_web_sm
+
 import streamlit as st
 from PyPDF2 import PdfReader
 import pandas as pd
@@ -38,8 +41,8 @@ def extract_skills(text):
         for chunk in doc.noun_chunks:
             if any(keyword in chunk.text.lower() for keyword in ["python", "java", "sql", "machine learning", "data analysis", "communication", "teamwork"]):
                 skills.add(chunk.text)
-        return list(skills) if skills else ["No key skills detected"]
-    return ["Skill extraction unavailable"]
+        return list(skills)
+    return ["Skill extraction unavailable (SpaCy not installed)"]
 
 # Function to rank resumes
 def rank_resumes(job_description, resumes):
@@ -54,7 +57,7 @@ def rank_resumes(job_description, resumes):
 # Function to highlight keywords in text
 def highlight_keywords(text, keywords):
     for keyword in keywords:
-        text = re.sub(f"\\b({keyword})\\b", r"<mark>\1</mark>", text, flags=re.IGNORECASE)
+        text = re.sub(f"({keyword})", r"<mark>\1</mark>", text, flags=re.IGNORECASE)
     return text
 
 # Function to create downloadable CSV
@@ -63,7 +66,7 @@ def get_csv_download_link(df):
     b64 = base64.b64encode(csv.encode()).decode()
     return f'<a href="data:file/csv;base64,{b64}" download="resume_ranking.csv">Download CSV</a>'
 
-# Streamlit app configuration
+# Streamlit app
 st.set_page_config(page_title="AI Resume Ranker", layout="wide", page_icon="📄")
 
 st.markdown("""
@@ -77,7 +80,6 @@ st.markdown("""
 
 st.markdown('<p class="big-font">AI-Powered Resume Screening & Ranking</p>', unsafe_allow_html=True)
 
-# Sidebar options
 with st.sidebar:
     st.subheader("Customization Options")
     min_score = st.slider("Minimum Similarity Score", 0.0, 1.0, 0.3)
@@ -85,7 +87,6 @@ with st.sidebar:
     show_skills = st.checkbox("Extract and Show Skills", value=SPACY_AVAILABLE)
     export_format = st.selectbox("Export Format", ["CSV", "Excel", "JSON"])
 
-# Layout columns
 col1, col2 = st.columns([2, 1])
 
 with col1:
@@ -99,7 +100,6 @@ with col2:
     st.image("https://cdn-icons-png.flaticon.com/512/3135/3135768.png", width=150)
     st.info("Upload resumes and enter a job description to rank candidates instantly!")
 
-# Process and display results
 if uploaded_files and job_description:
     with st.spinner("Analyzing resumes..."):
         resumes = []
@@ -112,35 +112,31 @@ if uploaded_files and job_description:
 
         if resumes:
             scores, feature_names = rank_resumes(job_description, resumes)
+            # Create DataFrame with ranking based on similarity scores
             results = pd.DataFrame({
-                "Rank": range(1, len(scores) + 1),
+                "Rank": range(1, len(scores) + 1),  # Initial ranking (will be updated after sorting)
                 "Resume": file_names,
                 "Similarity Score": scores
             })
-            results = results[results["Similarity Score"] >= min_score].sort_values(by="Similarity Score", ascending=False)
-            results["Rank"] = range(1, len(results) + 1)  # Reassign ranks after filtering
+            # Sort by similarity score in descending order and reassign ranks
+            results = results.sort_values(by="Similarity Score", ascending=False)
+            results["Rank"] = range(1, len(results) + 1)  # Reassign ranks after sorting
+            results = results[results["Similarity Score"] >= min_score]
 
             if show_skills and SPACY_AVAILABLE:
                 skills_list = [extract_skills(resume) for resume in resumes]
                 results["Key Skills"] = [", ".join(skills) for skills in skills_list]
 
-            # Display top candidates
-            st.markdown('<p class="subheader">Ranked Candidates</p>', unsafe_allow_html=True)
+            st.markdown('<p class="subheader">Top Candidates</p>', unsafe_allow_html=True)
             top_results = results.head(top_n)
             st.dataframe(top_results.style.format({"Similarity Score": "{:.2%}"}))
 
-            # Score distribution graph
-            st.markdown('<p class="subheader">Similarity Score Distribution</p>', unsafe_allow_html=True)
-            fig, ax = plt.subplots(figsize=(10, len(top_results) * 0.5))
+            st.markdown('<p class="subheader">Score Distribution</p>', unsafe_allow_html=True)
+            fig, ax = plt.subplots()
             sns.barplot(x="Similarity Score", y="Resume", data=top_results, palette="Blues_d", ax=ax)
-            ax.set_xlabel("Similarity Score (%)")
-            ax.set_xlim(0, 1)
-            for i, v in enumerate(top_results["Similarity Score"]):
-                ax.text(v + 0.01, i, f"{v:.2%}", va="center")
-            plt.tight_layout()
+            ax.set_xlabel("Similarity Score")
             st.pyplot(fig)
 
-            # Detailed resume matches
             with st.expander("View Detailed Resume Matches"):
                 for idx, row in top_results.iterrows():
                     resume_text = resumes[file_names.index(row["Resume"])]
@@ -148,7 +144,6 @@ if uploaded_files and job_description:
                     st.markdown(f"**Rank {row['Rank']}: {row['Resume']} (Score: {row['Similarity Score']:.2%})**", unsafe_allow_html=True)
                     st.markdown(f'<div>{highlighted_text}...</div>', unsafe_allow_html=True)
 
-            # Export results
             st.markdown('<p class="subheader">Export Results</p>', unsafe_allow_html=True)
             if export_format == "CSV":
                 st.markdown(get_csv_download_link(results), unsafe_allow_html=True)

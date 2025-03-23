@@ -107,15 +107,15 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ---
 
 ### Instructions
-1. **Create the File**:
+1. Create the File:
    - Save the above content as `README.md` in the root of your repository (`ai-resume-screening-and-ranking`).
 
-2. **Customize**:
+2. Customize:
    - Replace `your-username` in the clone URL with your actual GitHub username.
    - Update the demo link if your Streamlit Cloud URL changes.
    - Add a `LICENSE` file if you want to include one (e.g., MIT License text).
 
-3. **Push to GitHub**:
+3. Push to GitHub:
    ```bash
    git add README.md
    git commit -m "Add README file"

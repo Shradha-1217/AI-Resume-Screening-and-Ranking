@@ -104,7 +104,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 - Icons by [Flaticon](https://www.flaticon.com/).
 ```
 
----
+
 
 ### Instructions
 1. Create the File:
@@ -116,9 +116,9 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
    - Add a `LICENSE` file if you want to include one (e.g., MIT License text).
 
 3. Push to GitHub:
-   ```bash
+
    git add README.md
    git commit -m "Add README file"
    git push origin main
-   ```
+   
 

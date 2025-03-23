@@ -1,4 +1,5 @@
-# AI-Resume-Screening-and-Ranking
+
+# AI Resume Screening and Ranking
 
 A Streamlit-based web application that ranks resumes based on their similarity to a provided job description using TF-IDF and cosine similarity. The app extracts text from uploaded PDF resumes, calculates similarity scores, and provides visualizations and export options.
 
@@ -21,26 +22,26 @@ Deployed on Streamlit Community Cloud: [AI Resume Ranker](https://ai-resume-scre
 
 ## Installation
 
-1. Clone the Repository
-  
+1. **Clone the Repository**
+   ```bash
    git clone https://github.com/your-username/ai-resume-screening-and-ranking.git
    cd ai-resume-screening-and-ranking
-  
+   ```
 
-2. Set Up a Virtual Environment
-  
+2. **Set Up a Virtual Environment** (Optional but recommended)
+   ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-
-3. Install Dependencies
-
+3. **Install Dependencies**
+   ```bash
    pip install -r requirements.txt
-   
+   ```
 
 ## Requirements
 Create a `requirements.txt` file with the following:
-
+```
 streamlit==1.43.2
 PyPDF2==3.0.1
 pandas==2.2.3
@@ -49,17 +50,17 @@ spacy==3.8.2
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 matplotlib==3.9.2
 seaborn==0.13.2
-
+```
 
 ## Usage
 
-1. Run the App Locally
-   
+1. **Run the App Locally**
+   ```bash
    streamlit run resumeranking_app.py
-  
+   ```
    Open your browser at `http://localhost:8501`.
 
-2. How to Use
+2. **How to Use**
    - Enter a job description in the text area.
    - Upload one or more PDF resumes via the file uploader.
    - Adjust options in the sidebar:
@@ -79,9 +80,9 @@ seaborn==0.13.2
 4. Deploy the app. It will install dependencies from `requirements.txt` automatically.
 
 ## Troubleshooting
-- PDF Errors: Ensure uploaded PDFs contain extractable text (not scanned images).
-- SpaCy Issues: If skill extraction fails, verify the SpaCy model URL in `requirements.txt` or disable the feature.
-- Plot Errors: Ensure `matplotlib` and `seaborn` are installed and resumes have valid text.
+- **PDF Errors**: Ensure uploaded PDFs contain extractable text (not scanned images).
+- **SpaCy Issues**: If skill extraction fails, verify the SpaCy model URL in `requirements.txt` or disable the feature.
+- **Plot Errors**: Ensure `matplotlib` and `seaborn` are installed and resumes have valid text.
 
 ## Limitations
 - Skill extraction requires SpaCy and the `en_core_web_sm` model.
@@ -101,23 +102,23 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ## Acknowledgments
 - Built with [Streamlit](https://streamlit.io/), [PyPDF2](https://github.com/py-pdf/PyPDF2), and [scikit-learn](https://scikit-learn.org/).
 - Icons by [Flaticon](https://www.flaticon.com/).
+```
 
-
-
+---
 
 ### Instructions
-1. Create the File:
+1. **Create the File**:
    - Save the above content as `README.md` in the root of your repository (`ai-resume-screening-and-ranking`).
 
-2. Customize:
+2. **Customize**:
    - Replace `your-username` in the clone URL with your actual GitHub username.
    - Update the demo link if your Streamlit Cloud URL changes.
    - Add a `LICENSE` file if you want to include one (e.g., MIT License text).
 
-3. Push to GitHub:
-  
+3. **Push to GitHub**:
+   ```bash
    git add README.md
    git commit -m "Add README file"
    git push origin main
-   
+   ```
 

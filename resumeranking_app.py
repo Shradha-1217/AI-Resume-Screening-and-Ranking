@@ -9,7 +9,7 @@ try:
     SPACY_AVAILABLE = True
 except (ModuleNotFoundError, OSError):
     SPACY_AVAILABLE = False
-    st.warning("SpaCy not found or model not installed. Skill extraction will be disabled.")
+    st.warning("SpaCy not found or model not installed. Skill extraction will be disabled. Install with: 'pip install spacy' and 'python -m spacy download en_core_web_sm'")
 import re
 from io import BytesIO
 import base64
@@ -27,7 +27,7 @@ def extract_text_from_pdf(file):
                 text += extracted_text + " "
         return text.strip()
     except Exception as e:
-        st.error(f"Error processing {file.name}: {str(e)}")
+        st.error(f"Error processing {file.name}: {str(e)}. Please check the file format and try again.")
         return ""
 
 # Function to extract skills using spaCy (if available)
@@ -38,27 +38,18 @@ def extract_skills(text):
         for chunk in doc.noun_chunks:
             if any(keyword in chunk.text.lower() for keyword in ["python", "java", "sql", "machine learning", "data analysis", "communication", "teamwork"]):
                 skills.add(chunk.text)
-        return list(skills)
+        return list(skills) if skills else ["No key skills detected"]
     return ["Skill extraction unavailable"]
 
-# Function to rank resumes with improved preprocessing
+# Function to rank resumes
 def rank_resumes(job_description, resumes):
-    # Ensure no empty strings in documents
-    documents = [job_description] + [r for r in resumes if r.strip()]
-    if len(documents) < 2:  # Need at least job description + 1 resume
-        return None, None, None
-    
-    # TF-IDF Vectorization with min_df to reduce noise
-    vectorizer = TfidfVectorizer(stop_words="english", min_df=1)
-    try:
-        vectors = vectorizer.fit_transform(documents)
-        job_description_vector = vectors[0]
-        resume_vectors = vectors[1:]
-        cosine_similarities = cosine_similarity(job_description_vector, resume_vectors).flatten()
-        return cosine_similarities, vectorizer.get_feature_names_out(), len(documents) - 1
-    except ValueError as e:
-        st.error(f"Error in vectorization: {str(e)}. Ensure resumes contain text.")
-        return None, None, None
+    documents = [job_description] + resumes
+    vectorizer = TfidfVectorizer(stop_words="english")
+    vectors = vectorizer.fit_transform(documents)
+    job_description_vector = vectors[0]
+    resume_vectors = vectors[1:]
+    cosine_similarities = cosine_similarity(job_description_vector, resume_vectors).flatten()
+    return cosine_similarities, vectorizer.get_feature_names_out()
 
 # Function to highlight keywords in text
 def highlight_keywords(text, keywords):
@@ -108,7 +99,7 @@ with col2:
     st.image("https://cdn-icons-png.flaticon.com/512/3135/3135768.png", width=150)
     st.info("Upload resumes and enter a job description to rank candidates instantly!")
 
-# Process resumes and display results
+# Process and display results
 if uploaded_files and job_description:
     with st.spinner("Analyzing resumes..."):
         resumes = []
@@ -120,53 +111,54 @@ if uploaded_files and job_description:
                 file_names.append(file.name)
 
         if resumes:
-            scores, feature_names, valid_resumes = rank_resumes(job_description, resumes)
-            if scores is not None:
-                # Create DataFrame with scores
-                results = pd.DataFrame({"Resume": file_names[:valid_resumes], "Similarity Score": scores})
-                results = results[results["Similarity Score"] >= min_score].sort_values(by="Similarity Score", ascending=False)
+            scores, feature_names = rank_resumes(job_description, resumes)
+            results = pd.DataFrame({
+                "Rank": range(1, len(scores) + 1),
+                "Resume": file_names,
+                "Similarity Score": scores
+            })
+            results = results[results["Similarity Score"] >= min_score].sort_values(by="Similarity Score", ascending=False)
+            results["Rank"] = range(1, len(results) + 1)  # Reassign ranks after filtering
 
-                if show_skills and SPACY_AVAILABLE:
-                    skills_list = [extract_skills(resume) for resume in resumes[:valid_resumes]]
-                    results["Key Skills"] = [", ".join(skills) for skills in skills_list]
+            if show_skills and SPACY_AVAILABLE:
+                skills_list = [extract_skills(resume) for resume in resumes]
+                results["Key Skills"] = [", ".join(skills) for skills in skills_list]
 
-                # Display top candidates
-                st.markdown('<p class="subheader">Top Candidates</p>', unsafe_allow_html=True)
-                top_results = results.head(top_n)
-                st.dataframe(top_results.style.format({"Similarity Score": "{:.2%}"}))
+            # Display top candidates
+            st.markdown('<p class="subheader">Ranked Candidates</p>', unsafe_allow_html=True)
+            top_results = results.head(top_n)
+            st.dataframe(top_results.style.format({"Similarity Score": "{:.2%}"}))
 
-                # Bar plot for score distribution
-                st.markdown('<p class="subheader">Score Distribution</p>', unsafe_allow_html=True)
-                fig, ax = plt.subplots(figsize=(10, len(top_results) * 0.5))
-                sns.barplot(x="Similarity Score", y="Resume", data=top_results, palette="Blues_d", ax=ax)
-                ax.set_xlabel("Similarity Score (0-1)")
-                ax.set_xlim(0, 1)  # Ensure x-axis is 0 to 1
-                for i, v in enumerate(top_results["Similarity Score"]):
-                    ax.text(v + 0.01, i, f"{v:.2%}", va="center")  # Add score labels
-                plt.tight_layout()
-                st.pyplot(fig)
+            # Score distribution graph
+            st.markdown('<p class="subheader">Similarity Score Distribution</p>', unsafe_allow_html=True)
+            fig, ax = plt.subplots(figsize=(10, len(top_results) * 0.5))
+            sns.barplot(x="Similarity Score", y="Resume", data=top_results, palette="Blues_d", ax=ax)
+            ax.set_xlabel("Similarity Score (%)")
+            ax.set_xlim(0, 1)
+            for i, v in enumerate(top_results["Similarity Score"]):
+                ax.text(v + 0.01, i, f"{v:.2%}", va="center")
+            plt.tight_layout()
+            st.pyplot(fig)
 
-                # Detailed view with highlighted keywords
-                with st.expander("View Detailed Resume Matches"):
-                    for idx, row in top_results.iterrows():
-                        resume_text = resumes[file_names.index(row["Resume"])]
-                        highlighted_text = highlight_keywords(resume_text[:500], job_description.split()[:10])
-                        st.markdown(f"**{row['Resume']} (Score: {row['Similarity Score']:.2%})**", unsafe_allow_html=True)
-                        st.markdown(f'<div>{highlighted_text}...</div>', unsafe_allow_html=True)
+            # Detailed resume matches
+            with st.expander("View Detailed Resume Matches"):
+                for idx, row in top_results.iterrows():
+                    resume_text = resumes[file_names.index(row["Resume"])]
+                    highlighted_text = highlight_keywords(resume_text[:500], job_description.split()[:10])
+                    st.markdown(f"**Rank {row['Rank']}: {row['Resume']} (Score: {row['Similarity Score']:.2%})**", unsafe_allow_html=True)
+                    st.markdown(f'<div>{highlighted_text}...</div>', unsafe_allow_html=True)
 
-                # Export options
-                st.markdown('<p class="subheader">Export Results</p>', unsafe_allow_html=True)
-                if export_format == "CSV":
-                    st.markdown(get_csv_download_link(results), unsafe_allow_html=True)
-                elif export_format == "Excel":
-                    buffer = BytesIO()
-                    results.to_excel(buffer, index=False)
-                    st.download_button("Download Excel", buffer.getvalue(), "resume_ranking.xlsx")
-                elif export_format == "JSON":
-                    json_str = results.to_json(orient="records")
-                    st.download_button("Download JSON", json_str, "resume_ranking.json")
-            else:
-                st.error("Failed to compute similarity scores. Ensure resumes contain readable text.")
+            # Export results
+            st.markdown('<p class="subheader">Export Results</p>', unsafe_allow_html=True)
+            if export_format == "CSV":
+                st.markdown(get_csv_download_link(results), unsafe_allow_html=True)
+            elif export_format == "Excel":
+                buffer = BytesIO()
+                results.to_excel(buffer, index=False)
+                st.download_button("Download Excel", buffer.getvalue(), "resume_ranking.xlsx")
+            elif export_format == "JSON":
+                json_str = results.to_json(orient="records")
+                st.download_button("Download JSON", json_str, "resume_ranking.json")
         else:
             st.error("No valid text extracted from uploaded PDFs.")
 else:

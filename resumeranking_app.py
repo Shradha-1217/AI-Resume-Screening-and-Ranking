@@ -3,6 +3,11 @@
 
 
 import streamlit as st
+
+# ✅ Must be the first Streamlit command
+st.set_page_config(page_title="AI Resume Ranker", layout="wide", page_icon="📄")
+
+# Other imports
 from PyPDF2 import PdfReader
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -13,17 +18,15 @@ import base64
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# ✅ MUST be the first Streamlit call
-st.set_page_config(page_title="AI Resume Ranker", layout="wide", page_icon="📄")
-
-# Load spaCy
+# ✅ Safe SpaCy loading AFTER set_page_config
 try:
     import spacy
     nlp = spacy.load("en_core_web_sm")
     SPACY_AVAILABLE = True
 except (ModuleNotFoundError, OSError):
     SPACY_AVAILABLE = False
-    st.warning("SpaCy not found or model not installed. Skill extraction will be disabled. Install with: 'pip install spacy' and 'python -m spacy download en_core_web_sm'")
+    st.warning("SpaCy not found or model not installed. Skill extraction will be disabled. Install with:\n"
+               "`pip install spacy`\n`python -m spacy download en_core_web_sm`")
 
 import re
 from io import BytesIO

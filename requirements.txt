@@ -1,7 +1,8 @@
 streamlit
-PyPDF2
+pypdf
 pandas
 scikit-learn
 spacy
 matplotlib
 seaborn
+openpyxl

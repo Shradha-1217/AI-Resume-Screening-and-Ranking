@@ -3,10 +3,20 @@
 
 
 import streamlit as st
-from pypdf import PdfReader
+from PyPDF2 import PdfReader
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import re
+from io import BytesIO
+import base64
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# ✅ MUST be the first Streamlit call
+st.set_page_config(page_title="AI Resume Ranker", layout="wide", page_icon="📄")
+
+# Load spaCy
 try:
     import spacy
     nlp = spacy.load("en_core_web_sm")
@@ -14,6 +24,7 @@ try:
 except (ModuleNotFoundError, OSError):
     SPACY_AVAILABLE = False
     st.warning("SpaCy not found or model not installed. Skill extraction will be disabled. Install with: 'pip install spacy' and 'python -m spacy download en_core_web_sm'")
+
 import re
 from io import BytesIO
 import base64

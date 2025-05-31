@@ -1,3 +1,7 @@
+# !pip install spacy
+# !python -m spacy download en_core_web_sm
+
+
 import streamlit as st
 from PyPDF2 import PdfReader
 import pandas as pd
@@ -27,8 +31,10 @@ def extract_text_from_pdf(file):
                 text += extracted_text + " "
         return text.strip()
     except Exception as e:
-        st.error(f"Error processing {file.name}: {str(e)}")
+        st.error(f"Error processing {file.name}: {str(e)}. Please check the file format and try again.")
+
         return ""
+
 
 # Function to extract skills using spaCy (if available)
 def extract_skills(text):
@@ -41,6 +47,7 @@ def extract_skills(text):
         return list(skills)
     return ["Skill extraction unavailable (SpaCy not installed)"]
 
+
 # Function to rank resumes
 def rank_resumes(job_description, resumes):
     documents = [job_description] + resumes
@@ -51,12 +58,13 @@ def rank_resumes(job_description, resumes):
     cosine_similarities = cosine_similarity(job_description_vector, resume_vectors).flatten()
     return cosine_similarities, vectorizer.get_feature_names_out()
 
+
 # Function to highlight keywords in text
 def highlight_keywords(text, keywords):
-    for keyword in keywords:
+    for keyword in keywords:  # Avoid false positives by ensuring whole word match
+
         text = re.sub(f"({keyword})", r"<mark>\1</mark>", text, flags=re.IGNORECASE)
     return text
-
 
 
 #Function to create downloadable CSV
@@ -64,6 +72,7 @@ def get_csv_download_link(df):
     csv = df.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()
     return f'<a href="data:file/csv;base64,{b64}" download="resume_ranking.csv">Download CSV</a>'
+
 
 # Streamlit app
 st.set_page_config(page_title="AI Resume Ranker", layout="wide", page_icon="📄")

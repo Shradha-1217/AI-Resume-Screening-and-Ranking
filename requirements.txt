@@ -1,8 +1,7 @@
-streamlit==1.43.2
-PyPDF2==3.0.1
-pandas==2.2.3
-scikit-learn==1.5.2
-spacy==3.8.2
-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
-matplotlib==3.9.2
-seaborn==0.13.2
+streamlit
+PyPDF2
+pandas
+scikit-learn
+spacy
+matplotlib
+seaborn
